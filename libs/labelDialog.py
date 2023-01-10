@@ -72,13 +72,14 @@ class LabelDialog(QDialog):
 
     def pop_up(self, text='', move=True):
         """
-        Shows the dialog, setting the current text to `text`, and blocks the caller until the user has made a choice.
+        Shows the dialog, setting the current text to `text`, and blocks the lcaller until the user has made a choice.
         If the user entered a label, that label is returned, otherwise (i.e. if the user cancelled the action)
         `None` is returned.
         """
         self.parent().load_predefined_classes(
             self.predef_classes_file)  # Reload the predefined classes
-        self.list_widget.clear()  # Clear the list widget
+        if self.list_item is not None and len(self.list_item) > 0:
+            self.list_widget.clear()  # Clear the list widget
         for item in self.parent().label_hist:  # Populate the list widget with the updated predefined classes
             self.list_widget.addItem(item)
         self.edit.setText(text)
