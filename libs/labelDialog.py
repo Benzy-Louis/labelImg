@@ -1,4 +1,5 @@
 try:
+    from PyQt5.QtCore import Qt
     from PyQt5.QtGui import *
     from PyQt5.QtCore import *
     from PyQt5.QtWidgets import *
@@ -27,6 +28,8 @@ class LabelDialog(QDialog):
         model.setStringList(self.list_item)
         completer = QCompleter()
         completer.setModel(model)
+        completer.setFilterMode(Qt.MatchContains)
+        completer.setCaseSensitivity(Qt.CaseInsensitive)
         self.edit.setCompleter(completer)
 
         layout = QVBoxLayout()
