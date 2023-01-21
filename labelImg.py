@@ -232,10 +232,10 @@ class MainWindow(QMainWindow, WindowMixin):
             'copyPrevBounding'), self.copy_previous_bounding_boxes, 'Ctrl+v', 'copy', get_str('copyPrevBounding'))
 
         open_next_image = action(get_str('nextImg'), self.open_next_image,
-                                 'd', 'next', get_str('nextImgDetail'))
+                                 'D', 'next', get_str('nextImgDetail'))
 
         open_prev_image = action(get_str('prevImg'), self.open_prev_image,
-                                 'a', 'prev', get_str('prevImgDetail'))
+                                 'A', 'prev', get_str('prevImgDetail'))
 
         verify = action(get_str('verifyImg'), self.verify_image,
                         'space', 'verify', get_str('verifyImgDetail'))
@@ -282,7 +282,7 @@ class MainWindow(QMainWindow, WindowMixin):
         create = action(get_str('crtBox'), self.create_shape,
                         'w', 'new', get_str('crtBoxDetail'), enabled=False)
         delete = action(get_str('delBox'), self.delete_selected_shape,
-                        'Delete', 'delete', get_str('delBoxDetail'), enabled=False)
+                        'Q', 'delete', get_str('delBoxDetail'), enabled=False)
         copy = action(get_str('dupBox'), self.copy_selected_shape,
                       'Ctrl+D', 'copy', get_str('dupBoxDetail'),
                       enabled=False)
@@ -339,7 +339,7 @@ class MainWindow(QMainWindow, WindowMixin):
         }
 
         edit = action(get_str('editLabel'), self.edit_label,
-                      'Ctrl+E', 'edit', get_str('editLabelDetail'),
+                      'e', 'edit', get_str('editLabelDetail'),
                       enabled=False)
         self.edit_button.setDefaultAction(edit)
 
