@@ -7,11 +7,20 @@ from lxml import etree
 import codecs
 from libs.constants import DEFAULT_ENCODING
 from libs.ustr import ustr
-
-
+import requests
+from pydantic import BaseModel
+import os
 XML_EXT = '.xml'
 ENCODE_METHOD = DEFAULT_ENCODING
 
+class RetrieveSingleFileInput(BaseModel):
+    """ RetrieveSingleFileInputy
+
+    Args:
+        BaseModel (_type_): _description_
+    """
+    filename: str
+    
 class PascalVocWriter:
 
     def __init__(self, folder_name, filename, img_size, database_src='Unknown', local_img_path=None):
@@ -77,10 +86,11 @@ class PascalVocWriter:
         segmented.text = '0'
         return top
 
-    def add_bnd_box(self, x_min, y_min, x_max, y_max, name, difficult):
+    def add_bnd_box(self, x_min, y_min, x_max, y_max, name, difficult,id_num):
         bnd_box = {'xmin': x_min, 'ymin': y_min, 'xmax': x_max, 'ymax': y_max}
         bnd_box['name'] = name
         bnd_box['difficult'] = difficult
+        bnd_box['id'] = id_num
         self.box_list.append(bnd_box)
 
     def append_objects(self, top):
@@ -88,6 +98,8 @@ class PascalVocWriter:
             object_item = SubElement(top, 'object')
             name = SubElement(object_item, 'name')
             name.text = ustr(each_object['name'])
+            id_num = SubElement(object_item, 'id')
+            id_num.text =  str(each_object['id'])
             pose = SubElement(object_item, 'pose')
             pose.text = "Unspecified"
             truncated = SubElement(object_item, 'truncated')
@@ -125,10 +137,9 @@ class PascalVocWriter:
 
 
 class PascalVocReader:
-
     def __init__(self, file_path):
         # shapes type:
-        # [labbel, [(x1,y1), (x2,y2), (x3,y3), (x4,y4)], color, color, difficult]
+        # [labbel, [(x1,y1), (x2,y2), (x3,y3), (x4,y4)], color, color, difficult,id_num]
         self.shapes = []
         self.file_path = file_path
         self.verified = False
@@ -136,36 +147,80 @@ class PascalVocReader:
             self.parse_xml()
         except:
             pass
+        
+    def retrieve_single_file(self):
+        """retrieve_single_file
+
+        Args:
+            filepath (_type_): Will return the content of a single file
+        """
+        filename_no_ext, _ = os.path.splitext(os.path.basename(self.file_path))
+        filename = filename_no_ext + ".jpg"
+        response = requests.get("http://localhost:8080/retrieve_single_file",
+                                json=RetrieveSingleFileInput(filename=filename).dict(), timeout=None)
+        return response.json()[0]
 
     def get_shapes(self):
         return self.shapes
 
-    def add_shape(self, label, bnd_box, difficult):
-        x_min = int(float(bnd_box.find('xmin').text))
-        y_min = int(float(bnd_box.find('ymin').text))
-        x_max = int(float(bnd_box.find('xmax').text))
-        y_max = int(float(bnd_box.find('ymax').text))
+    # def add_shape(self, label, bnd_box, difficult):
+    #     x_min = int(float(bnd_box.find('xmin').text))
+    #     y_min = int(float(bnd_box.find('ymin').text))
+    #     x_max = int(float(bnd_box.find('xmax').text))
+    #     y_max = int(float(bnd_box.find('ymax').text))
+    #     points = [(x_min, y_min), (x_max, y_min), (x_max, y_max), (x_min, y_max)]
+    #     self.shapes.append((label, points, None, None, difficult))
+    #TODO
+    def add_shape(self, label, bnd_box, difficult, id_num):
+        x_min = int(float(bnd_box['xmin']))
+        y_min = int(float(bnd_box['ymin']))
+        x_max = int(float(bnd_box['xmax']))
+        y_max = int(float(bnd_box['ymax']))
         points = [(x_min, y_min), (x_max, y_min), (x_max, y_max), (x_min, y_max)]
-        self.shapes.append((label, points, None, None, difficult))
+        self.shapes.append((label, points, None, None, difficult, id_num))
+    # def parse_xml(self):
+    #     assert self.file_path.endswith(XML_EXT), "Unsupported file format"
+    #     parser = etree.XMLParser(encoding=ENCODE_METHOD)
+    #     xml_tree = ElementTree.parse(self.file_path, parser=parser).getroot()
+    #     filename = xml_tree.find('filename').text
+    #     try:
+    #         verified = xml_tree.attrib['verified']
+    #         if verified == 'yes':
+    #             self.verified = True
+    #     except KeyError:
+    #         self.verified = False
 
+    #     for object_iter in xml_tree.findall('object'):
+    #         bnd_box = object_iter.find("bndbox")
+    #         label = object_iter.find('name').text
+    #         # Add chris
+    #         difficult = False
+    #         if object_iter.find('difficult') is not None:
+    #             difficult = bool(int(object_iter.find('difficult').text))
+    #         self.add_shape(label, bnd_box, difficult)
+    #     return True
+   
     def parse_xml(self):
         assert self.file_path.endswith(XML_EXT), "Unsupported file format"
-        parser = etree.XMLParser(encoding=ENCODE_METHOD)
-        xml_tree = ElementTree.parse(self.file_path, parser=parser).getroot()
-        filename = xml_tree.find('filename').text
+        # parser = etree.XMLParser(encoding=ENCODE_METHOD)
+        # xml_tree = ElementTree.parse(self.file_path, parser=parser).getroot()
+        # filename = xml_tree.find('filename').text
+        
+        parser = self.retrieve_single_file()
         try:
-            verified = xml_tree.attrib['verified']
+            verified = parser['verified']
             if verified == 'yes':
                 self.verified = True
         except KeyError:
             self.verified = False
 
-        for object_iter in xml_tree.findall('object'):
-            bnd_box = object_iter.find("bndbox")
-            label = object_iter.find('name').text
+        for object_iter in parser['objects']:
+            bnd_box = object_iter['bndbox']
+            label = object_iter['name']
             # Add chris
             difficult = False
-            if object_iter.find('difficult') is not None:
-                difficult = bool(int(object_iter.find('difficult').text))
-            self.add_shape(label, bnd_box, difficult)
+            if object_iter['difficult'] is not None:
+                difficult = bool(int(object_iter['difficult']))
+            id_num = object_iter['id']
+            self.add_shape(label, bnd_box, difficult,id_num)
         return True

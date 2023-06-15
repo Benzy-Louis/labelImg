@@ -13,8 +13,25 @@ from libs.create_ml_io import CreateMLWriter
 from libs.pascal_voc_io import PascalVocWriter
 from libs.pascal_voc_io import XML_EXT
 from libs.yolo_io import YOLOWriter
+import requests
+from pydantic import BaseModel
 
+class RetrieveSingleFileInput(BaseModel):
+    """ RetrieveSingleFileInputy
 
+    Args:
+        BaseModel (_type_): _description_
+    """
+    filename: str
+
+class OverwriteSingleFileInput(BaseModel):
+    """OverwriteSingleFileInput
+
+    Args:
+        BaseModel (_type_): _description_
+    """
+    filepath: str
+     
 class LabelFileFormat(Enum):
     PASCAL_VOC = 1
     YOLO = 2
@@ -24,6 +41,13 @@ class LabelFileFormat(Enum):
 class LabelFileError(Exception):
     pass
 
+class UpdateSingleFileInput(BaseModel):
+    """UpdateSingleFileInput
+
+    Args:
+        BaseModel (_type_): _description_
+    """
+    filepath: str
 
 class LabelFile(object):
     # It might be changed as window creates. By default, using XML ext
@@ -50,7 +74,97 @@ class LabelFile(object):
         writer.write()
         return
 
+    def update_single_file(self,filepath):
+        """update_single_file
 
+        Args:
+            filepath (_type_): Will load a single file in the database
+        """
+        response = requests.post("http://localhost:8080/update_single_file",
+                                json=UpdateSingleFileInput(filepath=filepath).dict(), timeout=None)
+        print(response.json())
+
+    def update_single_file_no_id_gen(self,filepath):
+        """update_single_file_no_id_gen
+
+        Args:
+            filepath (_type_): Will load a single file in the database
+        """
+        response = requests.post("http://localhost:8080/update_single_file_no_id_gen",
+                                json=UpdateSingleFileInput(filepath=filepath).dict(), timeout=None)
+        print(response.json())
+        
+    def overwrite_single_file(self,filepath):
+        """load_single_file
+
+        Args:
+            filepath (_type_): Will load a single file in the database
+        """
+        response = requests.post("http://localhost:8080/overwrite_single_file",
+                                json=OverwriteSingleFileInput(filepath=filepath).dict(), timeout=None)
+        print(response.json())
+                
+    # def save_pascal_voc_format(self, filename, shapes, image_path, image_data,
+    #                            line_color=None, fill_color=None, database_src=None):
+    #     img_folder_path = os.path.dirname(image_path)
+    #     img_folder_name = os.path.split(img_folder_path)[-1]
+    #     img_file_name = os.path.basename(image_path)
+    #     # imgFileNameWithoutExt = os.path.splitext(img_file_name)[0]
+    #     # Read from file path because self.imageData might be empty if saving to
+    #     # Pascal format
+    #     if isinstance(image_data, QImage):
+    #         image = image_data
+    #     else:
+    #         image = QImage()
+    #         image.load(image_path)
+    #     image_shape = [image.height(), image.width(),
+    #                    1 if image.isGrayscale() else 3]
+    #     writer = PascalVocWriter(img_folder_name, img_file_name,
+    #                              image_shape, local_img_path=image_path)
+    #     writer.verified = self.verified
+
+    #     for shape in shapes:
+    #         points = shape['points']
+    #         label = shape['label']
+    #         # Add Chris
+    #         difficult = int(shape['difficult'])
+    #         bnd_box = LabelFile.convert_points_to_bnd_box(points)
+    #         writer.add_bnd_box(bnd_box[0], bnd_box[1], bnd_box[2], bnd_box[3], label, difficult)
+
+    #     writer.save(target_file=filename)
+    #     return
+
+    # def save_pascal_voc_format(self, filename, shapes, image_path, image_data,
+    #                            line_color=None, fill_color=None, database_src=None):
+    #     img_folder_path = os.path.dirname(image_path)
+    #     img_folder_name = os.path.split(img_folder_path)[-1]
+    #     img_file_name = os.path.basename(image_path)
+    #     # imgFileNameWithoutExt = os.path.splitext(img_file_name)[0]
+    #     # Read from file path because self.imageData might be empty if saving to
+    #     # Pascal format
+    #     if isinstance(image_data, QImage):
+    #         image = image_data
+    #     else:
+    #         image = QImage()
+    #         image.load(image_path)
+    #     image_shape = [image.height(), image.width(),
+    #                    1 if image.isGrayscale() else 3]
+    #     writer = PascalVocWriter(img_folder_name, img_file_name,
+    #                              image_shape, local_img_path=image_path)
+    #     writer.verified = self.verified
+
+    #     for shape in shapes:
+    #         points = shape['points']
+    #         label = shape['label']
+    #         id_num = shape['id_num']
+    #         # Add Chris
+    #         difficult = int(shape['difficult'])
+    #         bnd_box = LabelFile.convert_points_to_bnd_box(points)
+    #         writer.add_bnd_box(bnd_box[0], bnd_box[1], bnd_box[2], bnd_box[3], label, difficult, id_num)
+
+    #     writer.save(target_file=filename)
+    #     return
+    
     def save_pascal_voc_format(self, filename, shapes, image_path, image_data,
                                line_color=None, fill_color=None, database_src=None):
         img_folder_path = os.path.dirname(image_path)
@@ -73,14 +187,19 @@ class LabelFile(object):
         for shape in shapes:
             points = shape['points']
             label = shape['label']
+            id_num = shape['id_num']
             # Add Chris
             difficult = int(shape['difficult'])
             bnd_box = LabelFile.convert_points_to_bnd_box(points)
-            writer.add_bnd_box(bnd_box[0], bnd_box[1], bnd_box[2], bnd_box[3], label, difficult)
+            writer.add_bnd_box(bnd_box[0], bnd_box[1], bnd_box[2], bnd_box[3], label, difficult, id_num)
 
         writer.save(target_file=filename)
+        # update tinydb
+        self.update_single_file_no_id_gen(filepath=filename)
+        self.update_single_file(filepath=filename)
+        self.overwrite_single_file(filepath=filename)
         return
-
+    
     def save_yolo_format(self, filename, shapes, image_path, image_data, class_list,
                          line_color=None, fill_color=None, database_src=None):
         img_folder_path = os.path.dirname(image_path)

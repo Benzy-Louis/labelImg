@@ -14,6 +14,46 @@ import webbrowser as wb
 from functools import partial
 from collections import defaultdict
 
+import requests
+from pydantic import BaseModel
+
+class FolderInput(BaseModel):
+    """FolderInput
+
+    Args:
+        BaseModel (_type_): _description_
+    """
+    folder: str
+
+
+class FileInput(BaseModel):
+    """FileInput
+
+    Args:
+        BaseModel (_type_): _description_
+    """
+    filename: str
+
+
+class LoadSingleFileInput(BaseModel):
+    """LoadSingleFileInput
+
+    Args:
+        BaseModel (_type_): _description_
+    """
+    filepath: str
+
+
+
+class RetrieveSingleFileInput(BaseModel):
+    """ RetrieveSingleFileInputy
+
+    Args:
+        BaseModel (_type_): _description_
+    """
+    filename: str
+    
+    
 try:
     from PyQt5.QtGui import *
     from PyQt5.QtCore import *
@@ -831,8 +871,8 @@ class MainWindow(QMainWindow, WindowMixin):
 
     def load_labels(self, shapes):
         s = []
-        for label, points, line_color, fill_color, difficult in shapes:
-            shape = Shape(label=label)
+        for label, points, line_color, fill_color, difficult, id_num in shapes:
+            shape = Shape(label=label,id_num=id_num)
             for x, y in points:
 
                 # Ensure the labels are within the bounds of the image. If not, fix them.
@@ -883,7 +923,9 @@ class MainWindow(QMainWindow, WindowMixin):
                         fill_color=s.fill_color.getRgb(),
                         points=[(p.x(), p.y()) for p in s.points],
                         # add chris
-                        difficult=s.difficult)
+                        difficult=s.difficult,
+                        id_num=s.id_num)
+        
 
         shapes = [format_shape(shape) for shape in self.canvas.shapes]
         # Can add different annotation formats here
@@ -1580,6 +1622,19 @@ class MainWindow(QMainWindow, WindowMixin):
                     line = line.strip()
                     self.label_hist.append(line)
 
+    # def load_pascal_xml_by_filename(self, xml_path):
+    #     if self.file_path is None:
+    #         return
+    #     if os.path.isfile(xml_path) is False:
+    #         return
+
+    #     self.set_format(FORMAT_PASCALVOC)
+
+    #     t_voc_parse_reader = PascalVocReader(xml_path)
+    #     shapes = t_voc_parse_reader.get_shapes()
+    #     self.load_labels(shapes)
+    #     self.canvas.verified = t_voc_parse_reader.verified
+
     def load_pascal_xml_by_filename(self, xml_path):
         if self.file_path is None:
             return
@@ -1592,7 +1647,7 @@ class MainWindow(QMainWindow, WindowMixin):
         shapes = t_voc_parse_reader.get_shapes()
         self.load_labels(shapes)
         self.canvas.verified = t_voc_parse_reader.verified
-
+        
     def load_yolo_txt_by_filename(self, txt_path):
         if self.file_path is None:
             return

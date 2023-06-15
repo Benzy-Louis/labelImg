@@ -38,7 +38,8 @@ class Shape(object):
     scale = 1.0
     label_font_size = 8
 
-    def __init__(self, label=None, line_color=None, difficult=False, paint_label=False):
+    def __init__(self, label=None, line_color=None, difficult=False, paint_label=False, id_num=None):
+        self.id_num = id_num
         self.label = label
         self.points = []
         self.fill = False
